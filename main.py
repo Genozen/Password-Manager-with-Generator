@@ -1,8 +1,10 @@
+from json.decoder import JSONDecodeError
+from json.encoder import JSONEncoder
 import tkinter
 import tkinter.messagebox as messagebox
 import random
 import pyperclip
-
+import json
 
 PINK = "#e2979c"
 RED = "#e7305b"
@@ -53,6 +55,12 @@ def SavePassword():
     email = email_username_entry.get()
     password = password_entry.get()
     
+    data_dict = {
+        website_name: {
+            "email": email,
+            "password": password
+        }
+    }
     
     #return if some info are missing
     if len(website_name) == 0 or len(email) == 0 or len(password) == 0:
@@ -69,9 +77,21 @@ def SavePassword():
     
     print("password saved")
     #writes the information in the text file
-    with open('password.txt','a') as file:
-        file.write(f"{website_name} | {email} | {password} \n")
-    file.close
+
+    try:
+        with open('password.json','r') as file:
+            data = json.load(file)
+            data.update(data_dict)
+        #dumps a new entry if the json file is empty
+    except JSONDecodeError:
+        with open('password.json','w') as file:
+            json.dump(data_dict, file, indent=4)
+    else:
+        with open('password.json','w') as file:
+            json.dump(data, file, indent=4)
+        # file.write(f"{website_name} | {email} | {password} \n")
+    finally:
+        file.close
     
     #delete the information on the entries
     website_entry.delete(0, len(website_name))
@@ -80,6 +100,21 @@ def SavePassword():
     
     #refocu the cursor back to the website entry
     website_entry.focus()
+
+# ---------------------------- SEARCH USER INFORMATION ------------------------------- #
+def Search():
+    print("Searched")
+    website_name = website_entry.get()
+    
+    try:
+        with open('password.json', 'r') as file:
+            data = json.load(file)                
+    except FileNotFoundError:
+        messagebox.showinfo(title="Error", message="No file found")
+    else:
+        if website_name in data:
+            print(f"Found: {website_name}")
+            messagebox.showinfo(title="Information", message= f"{website_name} was found: \n Email: {data[website_name]['email']} \n Password: {data[website_name]['password']}")
 
 # ---------------------------- UI SETUP ------------------------------- #
 
@@ -96,10 +131,14 @@ canvas.grid(row=0, column= 1)
 website_label = tkinter.Label(text= "Website:")
 website_label.grid(row=1, column=0)
 
-website_entry = tkinter.Entry(width= 55)
-website_entry.grid(row=1, column=1, columnspan=2)
+website_entry = tkinter.Entry(width= 35)
+website_entry.grid(row=1, column=1)
 website_entry.focus() #Puts the cursor in here at start
 # website_entry.insert(0, "sample")
+
+search_button = tkinter.Button(text="Search", command= Search)
+search_button.grid(row=1, column=2)
+
 
 #email/username input
 email_username_label = tkinter.Label(text= "Email/Username:")
